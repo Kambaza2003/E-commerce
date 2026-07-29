@@ -1,4 +1,4 @@
-const { getProductsModel, getProductByIdModel, addProductModel, updateProductModel, deleteProductModel } = require("../models/productModel");
+const { getProductsModel, getProductByIdModel, addProductModel, updateProductModel, deleteProductModel, getProductsWithCategoryModel, getProductsByCategoryIdModel } = require("../models/productModel");
 
 const getProducts = async (req, res) => {
     try {
@@ -72,13 +72,20 @@ const addProduct = async (req, res) => {
             message: "Product created successfully",
             productId: result.insertId
         });
-    } catch (error) {
+    }catch (error) {
         console.error(error);
+
+        if (error.errno === 1452) {
+            return res.status(404).json({
+                message: "Category not found"
+            });
+        }
 
         res.status(500).json({
             message: "Internal Server Error"
         });
     }
+
 };
 
 const updateProduct = async (req, res) => {
@@ -128,6 +135,12 @@ const updateProduct = async (req, res) => {
     } catch (error) {
         console.error(error);
 
+        if (error.errno === 1452) {
+            return res.status(404).json({
+                message: "Category not found"
+            });
+        }
+
         res.status(500).json({
             message: "Internal Server Error"
         });
@@ -137,10 +150,10 @@ const updateProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
     try{
         const id = parseInt(req.params.id, 10);
-        if(isNaN(id)){
-            return status(400).res.json({
-                message: "invalid productId"
-            })
+        if (isNaN(id)) {
+            return res.status(400).json({
+                message: "Invalid Product ID"
+            });
         }
 
         const result = await deleteProductModel(id);
@@ -155,7 +168,7 @@ const deleteProduct = async (req, res) => {
             message: `product id = ${id} deleted successfully`
         })
 
-    }catch(error){
+    } catch (error) {
         console.error(error);
 
         res.status(500).json({
@@ -164,10 +177,55 @@ const deleteProduct = async (req, res) => {
     }
 }
 
+const getProductsWithCategory = async (req, res) => {
+    try {
+        const products = await getProductsWithCategoryModel();
+
+        res.status(200).json(products);
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+};
+
+const getProductsByCategoryId = async (req, res) => {
+    try{
+        const categoryId = parseInt(req.params.categoryId, 10);
+
+        if(isNaN(categoryId)){
+            return res.status(400).json({
+                message: "Invalid Category Id"
+            })
+        }
+
+        const category = await getProductsByCategoryIdModel(categoryId)
+
+        if (category.length === 0){
+            return res.status(404).json({
+                message: "Category not found"
+            })
+        }
+
+        res.status(200).json(category);
+    } catch(error){
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal Server Error"
+        })
+    }
+    
+}
+
 module.exports = {
     getProducts,
     getProductById,
     addProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getProductsWithCategory,
+    getProductsByCategoryId
 };

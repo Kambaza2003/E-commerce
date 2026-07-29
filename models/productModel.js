@@ -74,10 +74,45 @@ const deleteProductModel = async (id) => {
     return result;
 };
 
+const getProductsWithCategoryModel = async () => {
+    const [rows] = await pool.query(`
+        SELECT
+            products.id,
+            products.name,
+            products.price,
+            categories.name AS category
+        FROM products
+        JOIN categories
+            ON products.category_id = categories.id
+    `);
+
+    return rows;
+};
+
+const getProductsByCategoryIdModel = async (categoryId) => {
+    const [rows] = await pool.query(`
+        SELECT
+            products.id,
+            products.name,
+            products.price,
+            categories.name AS category
+        FROM products
+        JOIN categories
+            ON products.category_id = categories.id
+        WHERE categories.id = ?`,
+        [categoryId]
+    );
+    
+
+    return rows;
+}
+
 module.exports = {
     getProductsModel,
     getProductByIdModel,
     addProductModel,
     updateProductModel,
-    deleteProductModel
+    deleteProductModel,
+    getProductsWithCategoryModel,
+    getProductsByCategoryIdModel
 };

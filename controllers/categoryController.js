@@ -127,10 +127,16 @@ const deleteCategory = async (req, res) => {
             message: `Category with ID ${id} deleted successfully`
         });
 
-    }catch(error){
+    } catch (error) {
         console.error(error);
 
-        res.status(500).json({
+        if (error.errno === 1451) {
+            return res.status(409).json({
+                message: "Cannot delete category because it is being used by products"
+            });
+        }
+
+        return res.status(500).json({
             message: "Internal Server Error"
         });
     }
