@@ -3,6 +3,7 @@ const pool = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
 const productRoutes = require("./routes/productRoutes");
 const userRoutes = require("./routes/userRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 const { authenticateToken } = require("./middlewares/authMiddleware");
 
 const app = express();
@@ -12,6 +13,7 @@ app.use(express.json());
 app.use(productRoutes);
 app.use(categoryRoutes);
 app.use(userRoutes);
+app.use(orderRoutes);
 
 app.get("/", (req, res) => {
     res.json({
