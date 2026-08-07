@@ -1,7 +1,9 @@
 const {
     addOrderModel,
     getOrdersByUserIdModel,
-    getOrderByIdModel
+    getOrderByIdModel,
+    updateOrderModel,
+    deleteOrderModel
 } = require("../models/orderModel");
 
 const addOrder = async (req, res) => {
@@ -89,8 +91,82 @@ const getOrderById = async (req, res) => {
     }
 };
 
+const updateOrder = async (req, res) => {
+    try{
+        const orderId = parseInt(req.params.id, 10);
+
+        if (isNaN(orderId)) {
+            return res.status(400).json({
+                message: "Invalid Order ID"
+            });
+        }
+
+        const userId = req.user.id;
+        const { quantity } = req.body;
+
+        if (!quantity) {
+            return res.status(400).json({
+                message: "Quantity is required"
+            });
+        }
+
+        const result = await updateOrderModel(orderId, userId, quantity);
+
+        if (result.affectedRows === 0){
+            return res.status(404).json({
+                "message": "Order not found"
+            })
+        }
+        return res.status(200).json({
+            "message": "Order updated successfully"
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+    
+}
+
+const deleteOrder = async (req, res) => {
+    try{
+        const orderId = parseInt(req.params.id, 10);
+
+        if (isNaN(orderId)) {
+            return res.status(400).json({
+                message: "Invalid Order ID"
+            });
+        }
+
+        const userId = req.user.id;
+
+        const result = await deleteOrderModel(orderId, userId)
+
+        if(result.affectedRows === 0){
+            return res.status(404).json({
+                "message": "Order not found"
+            })
+        }
+        return res.status(200).json({
+            "message": "Order deleted successfully"
+        })
+
+    } catch(error){
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+
+}
+
 module.exports = {
     addOrder,
     getMyOrders,
-    getOrderById
+    getOrderById,
+    updateOrder,
+    deleteOrder
 }

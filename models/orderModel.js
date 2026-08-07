@@ -48,8 +48,34 @@ const getOrderByIdModel = async (orderId, userId) =>{
     return rows;
 };
 
+const updateOrderModel = async (orderId, userId, quantity) => {
+    const [result] = await pool.query(
+        `UPDATE orders
+         SET quantity = ?
+         WHERE id = ?
+         AND user_id = ?`,
+         [quantity, orderId, userId]
+    );
+
+    return result;
+   
+};
+
+const deleteOrderModel = async (orderId, userId) => {
+    const [result] = await pool.query(
+        `DELETE FROM orders
+         WHERE id = ?
+         AND user_id = ?;`,
+         [orderId, userId]
+    );
+
+    return result;
+}
+
 module.exports ={
     addOrderModel,
     getOrdersByUserIdModel,
-    getOrderByIdModel
+    getOrderByIdModel, 
+    updateOrderModel,
+    deleteOrderModel
 }
