@@ -4,6 +4,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const productRoutes = require("./routes/productRoutes");
 const userRoutes = require("./routes/userRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const cartRoutes = require("./routes/cartRoutes");
 const { authenticateToken } = require("./middlewares/authMiddleware");
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(productRoutes);
 app.use(categoryRoutes);
 app.use(userRoutes);
 app.use(orderRoutes);
+app.use(cartRoutes);
 
 app.get("/", (req, res) => {
     res.json({
