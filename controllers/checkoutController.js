@@ -4,8 +4,14 @@ const {
 
 const {
     createOrderFromCartModel,
-    clearCartModel
+    clearCartModel,
+    getTransactionConnection
 } = require("../models/checkoutModel");
+
+const {
+    getProductStockModel,
+    reduceProductStockModel
+} = require("../models/productModel");
 
 const getCheckout = async (req, res) => {
     try {
@@ -54,41 +60,70 @@ const getCheckout = async (req, res) => {
 };
 
 const completeCheckout = async (req, res) => {
+    let connection;
+
     try {
-        // Get the logged-in user's ID from the JWT
         const userId = req.user.id;
 
-        // Get the user's cart
         const cart = await getCartByUserIdModel(userId);
 
-        // User cannot checkout with an empty cart
         if (cart.length === 0) {
             return res.status(400).json({
                 message: "Cart is empty"
             });
         }
 
-        // Create an order for every item in the cart
+        connection = await getTransactionConnection();
+
         for (const item of cart) {
+            const product = await getProductStockModel(item.product_id);
+
+            if (product.length === 0) {
+                throw new Error("Product not found");
+            }
+
+            if (item.quantity > product[0].stock) {
+                return res.status(400).json({
+                    message: `Not enough stock for ${item.name}`
+                });
+            }
             await createOrderFromCartModel(
+                connection,
                 userId,
+                item.product_id,
+                item.quantity
+            );
+
+            await reduceProductStockModel(
+                connection,
                 item.product_id,
                 item.quantity
             );
         }
 
-        await clearCartModel(userId);
+        await clearCartModel(connection, userId);
+
+        await connection.commit();
 
         return res.status(201).json({
             message: "Checkout completed successfully"
         });
 
     } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
+
         console.error(error);
 
         return res.status(500).json({
             message: "Internal Server Error"
         });
+
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 };
 

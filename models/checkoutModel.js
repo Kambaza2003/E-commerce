@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 
-const createOrderFromCartModel = async (userId, productId, quantity) => {
-    const [result] = await pool.query(
+const createOrderFromCartModel = async ( connection, userId, productId, quantity) => {
+    const [result] = await connection.query(
         `INSERT INTO orders (user_id, product_id, quantity)
          VALUES (?, ?, ?);`,
         [userId, productId, quantity]
@@ -10,8 +10,8 @@ const createOrderFromCartModel = async (userId, productId, quantity) => {
     return result;
 };
 
-const clearCartModel = async (userId) => {
-    const [result] = await pool.query(
+const clearCartModel = async (connection, userId) => {
+    const [result] = await connection.query(
         `DELETE FROM cart
          WHERE user_id = ?;`,
         [userId]
@@ -20,7 +20,16 @@ const clearCartModel = async (userId) => {
     return result;
 };
 
+const getTransactionConnection = async () => {
+    const connection = await pool.getConnection();
+
+    await connection.beginTransaction();
+
+    return connection;
+};
+
 module.exports = {
     createOrderFromCartModel,
-    clearCartModel
+    clearCartModel, 
+    getTransactionConnection
 };

@@ -107,6 +107,29 @@ const getProductsByCategoryIdModel = async (categoryId) => {
     return rows;
 }
 
+const getProductStockModel = async (productId) => {
+    const [rows] = await pool.query(
+        `SELECT stock
+         FROM products
+         WHERE id = ?`,
+        [productId]
+    );
+
+    return rows;
+};
+
+const reduceProductStockModel = async (connection, productId, quantity) => {
+    const [result] = await connection.query(
+        `UPDATE products
+         SET stock = stock - ?
+         WHERE id = ?
+         AND stock >= ?`,
+        [quantity, productId, quantity]
+    );
+
+    return result;
+};
+
 module.exports = {
     getProductsModel,
     getProductByIdModel,
@@ -114,5 +137,7 @@ module.exports = {
     updateProductModel,
     deleteProductModel,
     getProductsWithCategoryModel,
-    getProductsByCategoryIdModel
+    getProductsByCategoryIdModel,
+    getProductStockModel,
+    reduceProductStockModel
 };

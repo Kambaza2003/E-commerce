@@ -15,19 +15,18 @@ const addToCart = async (req, res) => {
                 message: "Product ID and quantity are required"
             });
         }
+
         const userId = req.user.id;
 
-        await updateCartQuantityModel(
-            existingItem[0].id,
+        const existingItem = await getCartItemModel(
             userId,
-            newQuantity
+            product_id
         );
 
         if (existingItem.length > 0) {
             const newQuantity =
                 existingItem[0].quantity + quantity;
 
-            // Update the quantity in the cart.
             await updateCartQuantityModel(
                 existingItem[0].id,
                 newQuantity
@@ -49,7 +48,6 @@ const addToCart = async (req, res) => {
         });
 
     } catch (error) {
-
         console.error(error);
 
         return res.status(500).json({
