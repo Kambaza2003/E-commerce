@@ -17,6 +17,7 @@ const getOrdersByUserIdModel = async (userId) => {
             products.name,
             products.price,
             orders.quantity,
+            orders.status,
             orders.created_at
         FROM orders
         JOIN products
@@ -36,6 +37,7 @@ const getOrderByIdModel = async (orderId, userId) =>{
             products.name,
             products.price,
             orders.quantity,
+            orders.status,
             orders.created_at
         FROM orders
         JOIN products
@@ -72,11 +74,22 @@ const deleteOrderModel = async (orderId, userId) => {
     return result;
 }
 
+const updateOrderStatusModel = async (orderId, status) => {
+    const [result] = await pool.query(
+        `UPDATE orders
+         SET status = ? 
+         WHERE id = ?;`,
+         [status, orderId]
+    );
+
+    return result;
+}
 
 module.exports ={
     addOrderModel,
     getOrdersByUserIdModel,
     getOrderByIdModel, 
     updateOrderModel,
-    deleteOrderModel
+    deleteOrderModel,
+    updateOrderStatusModel
 }

@@ -3,7 +3,8 @@ const {
     getOrdersByUserIdModel,
     getOrderByIdModel,
     updateOrderModel,
-    deleteOrderModel
+    deleteOrderModel,
+    updateOrderStatusModel
 } = require("../models/orderModel");
 
 const addOrder = async (req, res) => {
@@ -163,10 +164,67 @@ const deleteOrder = async (req, res) => {
 
 }
 
+const updateOrderStatus = async (req, res) => {
+    try {
+        const orderId = parseInt(req.params.id, 10);
+
+        if (isNaN(orderId)) {
+            return res.status(400).json({
+                message: "Invalid Order ID"
+            });
+        }
+
+        const { status } = req.body;
+
+        const allowedStatuses = [
+            "pending",
+            "processing",
+            "shipped",
+            "delivered",
+            "cancelled"
+        ];
+
+        if (!status) {
+            return res.status(400).json({
+                message: "Status is required"
+            });
+        }
+
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({
+                message: "Invalid order status"
+            });
+        }
+
+        const result = await updateOrderStatusModel(
+            orderId,
+            status
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                message: "Order not found"
+            });
+        }
+
+        return res.status(200).json({
+            message: "Order status updated successfully"
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+};
+
 module.exports = {
     addOrder,
     getMyOrders,
     getOrderById,
     updateOrder,
-    deleteOrder
+    deleteOrder,
+    updateOrderStatus
 }
