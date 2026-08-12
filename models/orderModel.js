@@ -1,15 +1,5 @@
 const pool = require("../config/db");
 
-const addOrderModel = async (userId, productId, quantity) => {
-    const [result] = await pool.query(
-        `INSERT INTO orders (user_id, product_id, quantity)
-        VALUES (?, ?, ?)`,
-        [userId, productId, quantity]
-    );
-
-    return result;
-};
-
 const getOrdersByUserIdModel = async (userId) => {
     const [rows] = await pool.query(
         `SELECT
@@ -50,30 +40,6 @@ const getOrderByIdModel = async (orderId, userId) =>{
     return rows;
 };
 
-const updateOrderModel = async (orderId, userId, quantity) => {
-    const [result] = await pool.query(
-        `UPDATE orders
-         SET quantity = ?
-         WHERE id = ?
-         AND user_id = ?`,
-         [quantity, orderId, userId]
-    );
-
-    return result;
-   
-};
-
-const deleteOrderModel = async (orderId, userId) => {
-    const [result] = await pool.query(
-        `DELETE FROM orders
-         WHERE id = ?
-         AND user_id = ?;`,
-         [orderId, userId]
-    );
-
-    return result;
-}
-
 const updateOrderStatusModel = async (orderId, status) => {
     const [result] = await pool.query(
         `UPDATE orders
@@ -105,12 +71,21 @@ const getAllOrdersModel = async () => {
     return rows;
 };
 
+const updateOrderStatusWithConnectionModel = async (connection, orderId, status) => {
+    const [result] = await connection.query(
+        `UPDATE orders
+         SET status = ?
+         WHERE id = ?`,
+        [status, orderId]
+    );
+
+    return result;
+};
+
 module.exports ={
-    addOrderModel,
     getOrdersByUserIdModel,
     getOrderByIdModel, 
-    updateOrderModel,
-    deleteOrderModel,
     updateOrderStatusModel,
-    getAllOrdersModel
+    getAllOrdersModel,
+    updateOrderStatusWithConnectionModel
 }

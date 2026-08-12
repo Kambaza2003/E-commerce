@@ -6,6 +6,7 @@ const userRoutes = require("./routes/userRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 const { authenticateToken } = require("./middlewares/authMiddleware");
 
 const app = express();
@@ -18,6 +19,7 @@ app.use(userRoutes);
 app.use(orderRoutes);
 app.use(cartRoutes);
 app.use("/checkout", checkoutRoutes);
+app.use(paymentRoutes);
 
 app.get("/", (req, res) => {
     res.json({
