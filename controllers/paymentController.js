@@ -18,7 +18,14 @@ const createPayment = async (req, res) => {
     try {
         const orderId = parseInt(req.params.orderId, 10);
         const { amount } = req.body;
+        const paymentAmount = Number(amount);
         const userId = req.user.id;
+
+        if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+            return res.status(400).json({
+                message: "Valid amount is required"
+            });
+        }
 
         if (isNaN(orderId)) {
             return res.status(400).json({
@@ -45,9 +52,15 @@ const createPayment = async (req, res) => {
 
         const order = orders[0];
 
+        if (order.status !== "pending") {
+            return res.status(400).json({
+                message: "Payment cannot be created for this order"
+            });
+        }
+
         const expectedAmount = Number(order.price) * order.quantity;
 
-        if (Number(amount) !== expectedAmount) {
+        if (paymentAmount !== expectedAmount) {
             return res.status(400).json({
                 message: "Payment amount does not match order amount"
             });
@@ -63,7 +76,7 @@ const createPayment = async (req, res) => {
 
         const result = await createPaymentModel(
             orderId,
-            amount
+            paymentAmount
         );
 
         return res.status(201).json({

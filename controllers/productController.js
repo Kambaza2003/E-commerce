@@ -59,6 +59,18 @@ const addProduct = async (req, res) => {
             });
         }
 
+        if (Number(price) <= 0) {
+            return res.status(400).json({
+                message: "Price must be greater than 0"
+            });
+        }
+
+        if (!Number.isInteger(Number(stock)) || Number(stock) < 0) {
+            return res.status(400).json({
+                message: "Stock must be a non-negative integer"
+            });
+        }
+
         const result = await addProductModel(
             name,
             description,
@@ -110,6 +122,18 @@ const updateProduct = async (req, res) => {
         if (!name || price === undefined || stock === undefined || !category_id) {
             return res.status(400).json({
                 message: "Name, price, stock and category_id are required"
+            });
+        }
+
+        if (Number(price) <= 0) {
+            return res.status(400).json({
+                message: "Price must be greater than 0"
+            });
+        }
+
+        if (!Number.isInteger(Number(stock)) || Number(stock) < 0) {
+            return res.status(400).json({
+                message: "Stock must be a non-negative integer"
             });
         }
 

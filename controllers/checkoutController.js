@@ -81,12 +81,16 @@ const completeCheckout = async (req, res) => {
             if (product.length === 0) {
                 throw new Error("Product not found");
             }
-
             if (item.quantity > product[0].stock) {
-                return res.status(400).json({
-                    message: `Not enough stock for ${item.name}`
-                });
+                const error = new Error(
+                    `Not enough stock for ${item.name}`
+                );
+
+                error.status = 400;
+
+                throw error;
             }
+
             await createOrderFromCartModel(
                 connection,
                 userId,
@@ -94,11 +98,17 @@ const completeCheckout = async (req, res) => {
                 item.quantity
             );
 
-            await reduceProductStockModel(
+            const stockResult = await reduceProductStockModel(
                 connection,
                 item.product_id,
                 item.quantity
             );
+
+            if (stockResult.affectedRows === 0) {
+                throw new Error(
+                    `Stock changed or insufficient stock for product ${item.product_id}`
+                );
+            }
         }
 
         await clearCartModel(connection, userId);
@@ -116,8 +126,10 @@ const completeCheckout = async (req, res) => {
 
         console.error(error);
 
-        return res.status(500).json({
-            message: "Internal Server Error"
+        return res.status(error.status || 500).json({
+            message: error.status
+                ? error.message
+                : "Internal Server Error"
         });
 
     } finally {

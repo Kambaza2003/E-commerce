@@ -16,6 +16,7 @@ const getOrderForPaymentModel = async (orderId, userId) => {
             orders.id,
             orders.user_id,
             orders.quantity,
+            orders.status,
             products.price
          FROM orders
          JOIN products

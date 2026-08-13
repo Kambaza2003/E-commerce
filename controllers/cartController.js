@@ -10,9 +10,15 @@ const addToCart = async (req, res) => {
     try {
         const { product_id, quantity } = req.body;
 
-        if (!product_id || !quantity) {
+        if (!product_id || quantity === undefined) {
             return res.status(400).json({
                 message: "Product ID and quantity are required"
+            });
+        }
+
+        if (!Number.isInteger(Number(quantity)) || Number(quantity) <= 0) {
+            return res.status(400).json({
+                message: "Quantity must be a positive integer"
             });
         }
 
@@ -29,6 +35,7 @@ const addToCart = async (req, res) => {
 
             await updateCartQuantityModel(
                 existingItem[0].id,
+                userId,
                 newQuantity
             );
 
@@ -99,9 +106,15 @@ const updateCart = async (req, res) => {
         const { quantity } = req.body;
 
         // Make sure quantity was provided.
-        if (!quantity) {
+        if (quantity === undefined) {
             return res.status(400).json({
                 message: "Quantity is required"
+            });
+        }
+
+        if (!Number.isInteger(Number(quantity)) || Number(quantity) <= 0) {
+            return res.status(400).json({
+                message: "Quantity must be a positive integer"
             });
         }
 

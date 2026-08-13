@@ -43,13 +43,14 @@ const getOrderByIdModel = async (orderId, userId) =>{
 const updateOrderStatusModel = async (orderId, status) => {
     const [result] = await pool.query(
         `UPDATE orders
-         SET status = ? 
-         WHERE id = ?;`,
-         [status, orderId]
+         SET status = ?
+         WHERE id = ?
+         AND status NOT IN ('shipped', 'delivered', 'cancelled');`,
+        [status, orderId]
     );
 
     return result;
-}
+};
 
 const getAllOrdersModel = async () => {
     const [rows] = await pool.query(
