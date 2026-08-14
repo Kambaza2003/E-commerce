@@ -1,4 +1,6 @@
 const express = require("express");
+const cors = require("cors");
+
 const pool = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
 const productRoutes = require("./routes/productRoutes");
@@ -11,6 +13,7 @@ const { authenticateToken } = require("./middlewares/authMiddleware");
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 app.use(productRoutes);
