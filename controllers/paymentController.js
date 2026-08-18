@@ -3,7 +3,8 @@ const {
     getOrderForPaymentModel,
     getPaymentByOrderIdModel,
     getPaymentForUserModel,
-    updatePaymentStatusModel
+    updatePaymentStatusModel,
+    getAllPaymentsModel
 } = require("../models/paymentModel");
 
 const {
@@ -163,7 +164,28 @@ const payPayment = async (req, res) => {
     }
 };
 
+const getAllPayments = async (req, res) => {
+    try {
+
+        const payments = await getAllPaymentsModel();
+
+        return res.status(200).json({
+            payments
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: "Internal Server Error"
+        });
+
+    }
+};
+
 module.exports = {
     createPayment,
-    payPayment
+    payPayment,
+    getAllPayments
 };

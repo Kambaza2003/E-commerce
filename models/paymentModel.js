@@ -75,10 +75,33 @@ const updatePaymentStatusModel = async (connection, paymentId, status) => {
     return result;
 };
 
+const getAllPaymentsModel = async () => {
+    const [rows] = await pool.query(
+        `SELECT
+            payments.id,
+            payments.order_id,
+            payments.amount,
+            payments.status,
+            payments.created_at,
+            orders.user_id,
+            users.name,
+            users.email
+         FROM payments
+         JOIN orders
+            ON payments.order_id = orders.id
+         JOIN users
+            ON orders.user_id = users.id
+         ORDER BY payments.created_at DESC`
+    );
+
+    return rows;
+};
+
 module.exports = {
     createPaymentModel,
     getOrderForPaymentModel,
     getPaymentByOrderIdModel,
     getPaymentForUserModel,
-    updatePaymentStatusModel
+    updatePaymentStatusModel,
+    getAllPaymentsModel
 };
