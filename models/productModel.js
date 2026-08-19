@@ -79,11 +79,16 @@ const getProductsWithCategoryModel = async () => {
         SELECT
             products.id,
             products.name,
+            products.description,
             products.price,
-            categories.name AS category
+            products.stock,
+            products.image,
+            products.category_id,
+            categories.name AS category_name
         FROM products
         JOIN categories
             ON products.category_id = categories.id
+        ORDER BY products.id DESC
     `);
 
     return rows;
