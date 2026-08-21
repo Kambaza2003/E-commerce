@@ -80,12 +80,13 @@ const loginUser = async (req, res) => {
         const token = jwt.sign(
             {
                 id: user.id,
+                name: user.name,
                 email: user.email,
                 role: user.role
             },
             jwtConfig.secret,
             {
-                expiresIn: "1h"
+                expiresIn: "2h"
             }
         );
         res.status(200).json({
