@@ -91,7 +91,13 @@ const loginUser = async (req, res) => {
         );
         res.status(200).json({
             message: "Login successful",
-            token: token
+            token: token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
         });
 
     } catch (error) {
