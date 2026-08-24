@@ -1,11 +1,114 @@
 const { getProductsModel, getProductByIdModel, addProductModel, updateProductModel, deleteProductModel, getProductsWithCategoryModel, getProductsByCategoryIdModel } = require("../models/productModel");
 
 const getProducts = async (req, res) => {
+
     try {
-        const products = await getProductsModel();
+
+        const {
+            search,
+            category,
+            minPrice,
+            maxPrice,
+            sort
+        } = req.query;
+
+
+        const filters = {};
+
+
+        if (search) {
+            filters.search = search.trim();
+        }
+
+
+        if (category) {
+
+            const categoryId = parseInt(category, 10);
+
+            if (isNaN(categoryId)) {
+
+                return res.status(400).json({
+                    message: "Invalid category"
+                });
+
+            }
+
+            filters.category = categoryId;
+        }
+
+
+        if (minPrice !== undefined && minPrice !== "") {
+
+            const price = Number(minPrice);
+
+            if (isNaN(price) || price < 0) {
+
+                return res.status(400).json({
+                    message: "Invalid minimum price"
+                });
+
+            }
+
+            filters.minPrice = price;
+        }
+
+
+        if (maxPrice !== undefined && maxPrice !== "") {
+
+            const price = Number(maxPrice);
+
+            if (isNaN(price) || price < 0) {
+
+                return res.status(400).json({
+                    message: "Invalid maximum price"
+                });
+
+            }
+
+            filters.maxPrice = price;
+        }
+
+
+        if (filters.minPrice !== undefined &&
+            filters.maxPrice !== undefined &&
+            filters.minPrice > filters.maxPrice) {
+
+            return res.status(400).json({
+                message: "Minimum price cannot be greater than maximum price"
+            });
+        }
+
+
+        const allowedSorts = [
+            "price_asc",
+            "price_desc",
+            "name_asc",
+            "name_desc"
+        ];
+
+
+        if (sort) {
+
+            if (!allowedSorts.includes(sort)) {
+
+                return res.status(400).json({
+                    message: "Invalid sort option"
+                });
+
+            }
+
+            filters.sort = sort;
+        }
+
+
+        const products =
+            await getProductsModel(filters);
+
 
         res.status(200).json(products);
+
     } catch (error) {
+
         console.error(error);
 
         res.status(500).json({

@@ -1,7 +1,82 @@
 const pool = require("../config/db");
 
-const getProductsModel = async () => {
-    const [rows] = await pool.query("SELECT * FROM products");
+const getProductsModel = async (filters = {}) => {
+
+    let query = `
+        SELECT
+            products.*,
+            categories.name AS category_name
+        FROM products
+        JOIN categories
+            ON products.category_id = categories.id
+        WHERE 1 = 1
+    `;
+
+    const values = [];
+
+    if (filters.search) {
+
+        query += `
+            AND (
+                products.name LIKE ?
+                OR products.description LIKE ?
+            )
+        `;
+
+        const searchValue = `%${filters.search}%`;
+
+        values.push(searchValue, searchValue);
+    }
+
+    if (filters.category) {
+
+        query += `
+            AND products.category_id = ?
+        `;
+
+        values.push(filters.category);
+    }
+
+    if (filters.minPrice !== undefined) {
+
+        query += `
+            AND products.price >= ?
+        `;
+
+        values.push(filters.minPrice);
+    }
+
+    if (filters.maxPrice !== undefined) {
+
+        query += `
+            AND products.price <= ?
+        `;
+
+        values.push(filters.maxPrice);
+    }
+
+    if (filters.sort === "price_asc") {
+
+        query += ` ORDER BY products.price ASC`;
+
+    } else if (filters.sort === "price_desc") {
+
+        query += ` ORDER BY products.price DESC`;
+
+    } else if (filters.sort === "name_asc") {
+
+        query += ` ORDER BY products.name ASC`;
+
+    } else if (filters.sort === "name_desc") {
+
+        query += ` ORDER BY products.name DESC`;
+
+    } else {
+
+        query += ` ORDER BY products.id DESC`;
+    }
+
+    const [rows] = await pool.query(query, values);
 
     return rows;
 };
