@@ -1,10 +1,20 @@
 const pool = require("../config/db");
 
-const createPaymentModel = async (orderId, amount) => {
+const createPaymentModel = async (
+    orderId,
+    amount,
+    reference
+) => {
+
     const [result] = await pool.query(
-        `INSERT INTO payments (order_id, amount)
-         VALUES (?, ?)`,
-        [orderId, amount]
+        `INSERT INTO payments
+        (order_id, amount, reference)
+        VALUES (?, ?, ?)`,
+        [
+            orderId,
+            amount,
+            reference
+        ]
     );
 
     return result;
@@ -30,11 +40,13 @@ const getOrderForPaymentModel = async (orderId, userId) => {
 };
 
 const getPaymentByOrderIdModel = async (orderId) => {
+
     const [rows] = await pool.query(
         `SELECT
             id,
             order_id,
             amount,
+            reference,
             status,
             created_at
          FROM payments
@@ -46,11 +58,13 @@ const getPaymentByOrderIdModel = async (orderId) => {
 };
 
 const getPaymentForUserModel = async (paymentId, userId) => {
+
     const [rows] = await pool.query(
         `SELECT
             payments.id,
             payments.order_id,
             payments.amount,
+            payments.reference,
             payments.status,
             orders.user_id
          FROM payments
@@ -97,11 +111,39 @@ const getAllPaymentsModel = async () => {
     return rows;
 };
 
+const getPaymentByReferenceForUserModel = async (
+    reference,
+    userId
+) => {
+
+    const [rows] = await pool.query(
+        `SELECT
+            payments.id,
+            payments.order_id,
+            payments.amount,
+            payments.reference,
+            payments.status,
+            orders.user_id
+         FROM payments
+         JOIN orders
+            ON payments.order_id = orders.id
+         WHERE payments.reference = ?
+         AND orders.user_id = ?`,
+        [
+            reference,
+            userId
+        ]
+    );
+
+    return rows;
+};
+
 module.exports = {
     createPaymentModel,
     getOrderForPaymentModel,
     getPaymentByOrderIdModel,
     getPaymentForUserModel,
     updatePaymentStatusModel,
-    getAllPaymentsModel
+    getAllPaymentsModel,
+    getPaymentByReferenceForUserModel
 };

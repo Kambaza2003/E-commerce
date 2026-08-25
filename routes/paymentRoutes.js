@@ -13,7 +13,7 @@ const { authorizeAdmin } = require("../middlewares/authorizeAdmin");
 const router = express.Router();
 
 router.post("/payments/:orderId", authenticateToken, createPayment);
-router.post("/payments/:paymentId/pay", authenticateToken, payPayment);
+router.post("/payments/reference/:reference/pay", authenticateToken, payPayment);
 router.get("/admin/payments", authenticateToken, authorizeAdmin, getAllPayments);
 
 module.exports = router;

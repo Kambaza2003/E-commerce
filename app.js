@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 
@@ -38,6 +40,12 @@ app.get("/profile", authenticateToken, (req, res) => {
         user: req.user
     });
 });
+
+console.log(
+    process.env.PAYSTACK_SECRET_KEY
+        ? "Paystack key loaded"
+        : "Paystack key missing"
+);
 
 const PORT = 7000;
 

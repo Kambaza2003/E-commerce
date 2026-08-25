@@ -1,0 +1,56 @@
+const axios = require("axios");
+
+const PAYSTACK_BASE_URL =
+    "https://api.paystack.co";
+
+
+const initializeTransaction = async (
+    email,
+    amount,
+    reference,
+    callbackUrl
+) => {
+
+    const response = await axios.post(
+        `${PAYSTACK_BASE_URL}/transaction/initialize`,
+        {
+            email,
+            amount,
+            reference,
+            callback_url: callbackUrl
+        },
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+
+                "Content-Type":
+                    "application/json"
+            }
+        }
+    );
+
+    return response.data;
+};
+
+
+const verifyTransaction = async (reference) => {
+
+    const response = await axios.get(
+        `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+            }
+        }
+    );
+
+    return response.data;
+};
+
+
+module.exports = {
+    initializeTransaction,
+    verifyTransaction
+};
