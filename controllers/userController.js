@@ -1,6 +1,5 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const jwtConfig = require("../config/jwt");
 const {
     addUserModel,
     getUserByEmailModel,
@@ -84,7 +83,7 @@ const loginUser = async (req, res) => {
                 email: user.email,
                 role: user.role
             },
-            jwtConfig.secret,
+            process.env.JWT_SECRET,
             {
                 expiresIn: "2h"
             }

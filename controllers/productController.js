@@ -1,4 +1,15 @@
-const { getProductsModel, getProductByIdModel, addProductModel, updateProductModel, deleteProductModel, getProductsWithCategoryModel, getProductsByCategoryIdModel } = require("../models/productModel");
+const {
+    getProductsModel,
+    getProductByIdModel,
+    addProductModel,
+    updateProductModel,
+    deleteProductModel,
+    getProductsWithCategoryModel,
+    getProductsByCategoryIdModel,
+    addProductImageModel,
+    getProductImagesModel,
+    deleteProductImagesModel
+} = require("../models/productModel");
 
 const getProducts = async (req, res) => {
 
@@ -145,6 +156,42 @@ const getProductById = async (req, res) => {
     }
 };
 
+const getProductImages = async (req, res) => {
+
+    try {
+
+        const productId =
+            parseInt(req.params.id, 10);
+
+
+        if (isNaN(productId)) {
+
+            return res.status(400).json({
+                message: "Invalid product ID"
+            });
+
+        }
+
+
+        const images =
+            await getProductImagesModel(productId);
+
+
+        res.status(200).json(images);
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal Server Error"
+        });
+
+    }
+
+};
+
 const addProduct = async (req, res) => {
     try {
         const {
@@ -153,7 +200,8 @@ const addProduct = async (req, res) => {
             price,
             stock,
             image,
-            category_id
+            category_id,
+            additionalImages = []
         } = req.body;
 
         if (!name || price === undefined || stock === undefined || !category_id) {
@@ -182,6 +230,15 @@ const addProduct = async (req, res) => {
             image,
             category_id
         );
+
+        for (const additionalImage of additionalImages) {
+
+            await addProductImageModel(
+                result.insertId,
+                additionalImage
+            );
+
+        }
 
         res.status(201).json({
             message: "Product created successfully",
@@ -219,7 +276,8 @@ const updateProduct = async (req, res) => {
             price,
             stock,
             image,
-            category_id
+            category_id,
+            additionalImages = []
         } = req.body;
 
         if (!name || price === undefined || stock === undefined || !category_id) {
@@ -254,6 +312,19 @@ const updateProduct = async (req, res) => {
             return res.status(404).json({
                 message: "Product not found"
             });
+        }
+
+
+        await deleteProductImagesModel(id);
+
+
+        for (const additionalImage of additionalImages) {
+
+            await addProductImageModel(
+                id,
+                additionalImage
+            );
+
         }
 
         res.status(200).json({
@@ -350,6 +421,7 @@ const getProductsByCategoryId = async (req, res) => {
 module.exports = {
     getProducts,
     getProductById,
+    getProductImages,
     addProduct,
     updateProduct,
     deleteProduct,

@@ -210,6 +210,47 @@ const reduceProductStockModel = async (connection, productId, quantity) => {
     return result;
 };
 
+const addProductImageModel = async (productId, image) => {
+
+    const [result] = await pool.query(
+        `INSERT INTO product_images
+        (product_id, image)
+        VALUES (?, ?)`,
+        [productId, image]
+    );
+
+    return result;
+};
+
+
+const getProductImagesModel = async (productId) => {
+
+    const [rows] = await pool.query(
+        `SELECT
+            id,
+            product_id,
+            image
+         FROM product_images
+         WHERE product_id = ?
+         ORDER BY id ASC`,
+        [productId]
+    );
+
+    return rows;
+};
+
+
+const deleteProductImagesModel = async (productId) => {
+
+    const [result] = await pool.query(
+        `DELETE FROM product_images
+         WHERE product_id = ?`,
+        [productId]
+    );
+
+    return result;
+};
+
 module.exports = {
     getProductsModel,
     getProductByIdModel,
@@ -218,6 +259,9 @@ module.exports = {
     deleteProductModel,
     getProductsWithCategoryModel,
     getProductsByCategoryIdModel,
+    addProductImageModel,
+    getProductImagesModel,
+    deleteProductImagesModel,
     getProductStockModel,
     reduceProductStockModel
 };
