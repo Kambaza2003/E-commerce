@@ -1,5 +1,3 @@
-const pool = require("../config/db");
-
 const {
     createPaymentModel,
     getOrderForPaymentModel,
@@ -7,7 +5,8 @@ const {
     getPaymentForUserModel,
     updatePaymentStatusModel,
     getAllPaymentsModel,
-    getPaymentByReferenceForUserModel
+    getPaymentByReferenceForUserModel,
+    getPaymentByReferenceModel
 } = require("../models/paymentModel");
 
 const {
@@ -243,6 +242,14 @@ const payPayment = async (req, res) => {
             payments[0];
 
 
+        if (payment.status === "successful") {
+
+            return res.status(200).json({
+                message: "Payment successful"
+            });
+
+        }
+
         if (payment.status !== "pending") {
 
             return res.status(400).json({
@@ -442,7 +449,19 @@ const paystackWebhook = async (req, res) => {
             .digest("hex");
 
 
-        if (hash !== signature) {
+        const hashBuffer =
+            Buffer.from(hash, "hex");
+
+        const signatureBuffer =
+            Buffer.from(signature, "hex");
+
+        if (
+            hashBuffer.length !== signatureBuffer.length ||
+            !crypto.timingSafeEqual(
+                hashBuffer,
+                signatureBuffer
+            )
+        ) {
 
             return res.status(401).json({
                 message: "Invalid Paystack signature"
@@ -485,18 +504,8 @@ const paystackWebhook = async (req, res) => {
          * Find the payment using the Paystack
          * transaction reference.
          */
-        const [payments] =
-            await pool.query(
-                `SELECT
-                    id,
-                    order_id,
-                    amount,
-                    status
-                 FROM payments
-                 WHERE reference = ?`,
-                [reference]
-            );
-
+        const payments =
+            await getPaymentByReferenceModel(reference);
 
         /*
          * The webhook may arrive for a transaction

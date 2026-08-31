@@ -138,6 +138,23 @@ const getPaymentByReferenceForUserModel = async (
     return rows;
 };
 
+const getPaymentByReferenceModel = async (reference) => {
+
+    const [rows] = await pool.query(
+        `SELECT
+            id,
+            order_id,
+            amount,
+            reference,
+            status
+         FROM payments
+         WHERE reference = ?`,
+        [reference]
+    );
+
+    return rows;
+};
+
 module.exports = {
     createPaymentModel,
     getOrderForPaymentModel,
@@ -145,5 +162,6 @@ module.exports = {
     getPaymentForUserModel,
     updatePaymentStatusModel,
     getAllPaymentsModel,
-    getPaymentByReferenceForUserModel
+    getPaymentByReferenceForUserModel,
+    getPaymentByReferenceModel
 };
