@@ -18,7 +18,14 @@ const { authenticateToken } = require("./middlewares/authMiddleware");
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+
+app.use(express.json({
+    verify: (req, res, buf) => {
+        if (req.originalUrl === "/payments/webhook") {
+            req.rawBody = buf;
+        }
+    }
+}));
 
 app.use(productRoutes);
 app.use(categoryRoutes);

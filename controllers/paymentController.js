@@ -1,3 +1,5 @@
+const pool = require("../config/db");
+
 const {
     createPaymentModel,
     getOrderForPaymentModel,
@@ -139,7 +141,7 @@ const createPayment = async (req, res) => {
          */
 
         const callbackUrl =
-            `http://127.0.0.1:5501/frontend/payment-callback.html`;
+           `https://pc-hub-frontend.onrender.com/payment-callback.html`;
 
         const paystackResponse =
             await initializeTransaction(
@@ -404,8 +406,219 @@ const getAllPayments = async (req, res) => {
     }
 };
 
+const crypto = require("crypto");
+
+const paystackWebhook = async (req, res) => {
+
+    let connection;
+
+    try {
+
+        /*
+         * Get Paystack's signature.
+         */
+        const signature =
+            req.headers["x-paystack-signature"];
+
+        if (!signature) {
+
+            return res.status(401).json({
+                message: "Missing Paystack signature"
+            });
+
+        }
+
+
+        /*
+         * Verify that the request actually
+         * came from Paystack.
+         */
+        const hash = crypto
+            .createHmac(
+                "sha512",
+                process.env.PAYSTACK_SECRET_KEY
+            )
+            .update(req.rawBody)
+            .digest("hex");
+
+
+        if (hash !== signature) {
+
+            return res.status(401).json({
+                message: "Invalid Paystack signature"
+            });
+
+        }
+
+
+        /*
+         * Paystack sends different event types.
+         * We only process successful charges.
+         */
+        if (req.body.event !== "charge.success") {
+
+            return res.status(200).json({
+                message: "Event received"
+            });
+
+        }
+
+
+        const transaction =
+            req.body.data;
+
+
+        if (!transaction || !transaction.reference) {
+
+            return res.status(400).json({
+                message: "Invalid webhook data"
+            });
+
+        }
+
+
+        const reference =
+            transaction.reference;
+
+
+        /*
+         * Find the payment using the Paystack
+         * transaction reference.
+         */
+        const [payments] =
+            await pool.query(
+                `SELECT
+                    id,
+                    order_id,
+                    amount,
+                    status
+                 FROM payments
+                 WHERE reference = ?`,
+                [reference]
+            );
+
+
+        /*
+         * The webhook may arrive for a transaction
+         * that our system does not know about.
+         *
+         * Acknowledge it so Paystack does not
+         * repeatedly retry the webhook.
+         */
+        if (payments.length === 0) {
+
+            return res.status(200).json({
+                message: "Payment not found"
+            });
+
+        }
+
+
+        const payment =
+            payments[0];
+
+
+        /*
+         * Ignore duplicate webhook notifications
+         * for an already successful payment.
+         */
+        if (payment.status === "successful") {
+
+            return res.status(200).json({
+                message: "Payment already processed"
+            });
+
+        }
+
+
+        /*
+         * Verify that the amount reported by
+         * Paystack matches our stored amount.
+         */
+        const expectedAmount =
+            Math.round(
+                Number(payment.amount) * 100
+            );
+
+
+        if (
+            Number(transaction.amount) !==
+            expectedAmount
+        ) {
+
+            return res.status(400).json({
+                message: "Payment amount mismatch"
+            });
+
+        }
+
+
+        /*
+         * Start database transaction.
+         */
+        connection =
+            await getTransactionConnection();
+
+
+        /*
+         * Update payment status.
+         */
+        await updatePaymentStatusModel(
+            connection,
+            payment.id,
+            "successful"
+        );
+
+
+        /*
+         * Update order status.
+         */
+        await updateOrderStatusWithConnectionModel(
+            connection,
+            payment.order_id,
+            "processing"
+        );
+
+
+        await connection.commit();
+
+
+        return res.status(200).json({
+            message: "Webhook processed successfully"
+        });
+
+    } catch (error) {
+
+        if (connection) {
+
+            await connection.rollback();
+
+        }
+
+        console.error(
+            "Paystack webhook error:",
+            error
+        );
+
+        return res.status(500).json({
+            message: "Unable to process webhook"
+        });
+
+    } finally {
+
+        if (connection) {
+
+            connection.release();
+
+        }
+
+    }
+
+};
+
 module.exports = {
     createPayment,
     payPayment,
-    getAllPayments
+    getAllPayments,
+    paystackWebhook
 };

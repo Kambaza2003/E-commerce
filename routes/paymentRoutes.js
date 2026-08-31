@@ -3,7 +3,8 @@ const express = require("express");
 const {
     createPayment,
     payPayment,
-    getAllPayments
+    getAllPayments,
+    paystackWebhook
 } = require("../controllers/paymentController");
 
 const { authenticateToken } = require("../middlewares/authMiddleware");
@@ -12,6 +13,7 @@ const { authorizeAdmin } = require("../middlewares/authorizeAdmin");
 
 const router = express.Router();
 
+router.post("/payments/webhook", paystackWebhook);
 router.post("/payments/:orderId", authenticateToken, createPayment);
 router.post("/payments/reference/:reference/pay", authenticateToken, payPayment);
 router.get("/admin/payments", authenticateToken, authorizeAdmin, getAllPayments);
