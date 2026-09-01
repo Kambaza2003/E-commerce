@@ -74,7 +74,7 @@ const createPayment = async (req, res) => {
             Math.round(expectedAmount * 100);
 
         const existingPayments =
-            await getPaymentByOrderIdModel(orderId);
+           await getPaymentByOrderIdModel(orderId);
 
 
         if (existingPayments.length > 0) {
@@ -82,6 +82,11 @@ const createPayment = async (req, res) => {
             const existingPayment =
                 existingPayments[0];
 
+
+            /*
+            * If the order already has a successful
+            * payment, do not create another one.
+            */
 
             if (existingPayment.status === "successful") {
 
@@ -93,8 +98,12 @@ const createPayment = async (req, res) => {
 
 
             /*
-            * If the payment is still pending,
-            * check its status directly with Paystack.
+            * If there is already a pending payment,
+            * do not create another payment record.
+            *
+            * This prevents duplicate payment records
+            * caused by page refreshes, double clicks,
+            * repeated requests, etc.
             */
 
             if (existingPayment.status === "pending") {
@@ -105,27 +114,46 @@ const createPayment = async (req, res) => {
                     );
 
 
+                /*
+                * Paystack says the existing transaction
+                * was successful.
+                */
+
                 if (
                     paystackResponse.status &&
                     paystackResponse.data.status === "success"
                 ) {
 
                     return res.status(400).json({
-                        message: "Payment was already completed. Please refresh your orders."
+                        message:
+                            "Payment was already completed. Please refresh your orders."
                     });
 
                 }
 
+
                 /*
-                * The existing payment has not
-                * succeeded, so allow a new attempt.
-                *
-                * We will create a new reference below.
+                * The payment is still pending.
+                * Reuse the existing payment instead of
+                * creating another database record.
                 */
+
+                return res.status(200).json({
+
+                    message:
+                        "A payment is already pending for this order.",
+
+                    paymentId:
+                        existingPayment.id,
+
+                    reference:
+                        existingPayment.reference
+
+                });
 
             }
 
-        }    
+        }   
 
         /*
          * Create a unique reference

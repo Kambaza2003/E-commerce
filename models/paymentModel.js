@@ -50,7 +50,8 @@ const getPaymentByOrderIdModel = async (orderId) => {
             status,
             created_at
          FROM payments
-         WHERE order_id = ?`,
+         WHERE order_id = ?
+         ORDER BY id DESC`,
         [orderId]
     );
 
