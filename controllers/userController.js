@@ -1,8 +1,13 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+
 const {
     addUserModel,
     getUserByEmailModel,
+    saveResetTokenModel,
+    getUserByResetTokenModel,
+    updatePasswordModel,
     getAllUsersModel
 } = require("../models/userModel");
 
@@ -108,6 +113,118 @@ const loginUser = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+    try {
+
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                message: "Email is required"
+            });
+        }
+
+        const users = await getUserByEmailModel(email);
+
+        /*
+         * Always return the same response whether
+         * the email exists or not.
+         */
+        if (users.length === 0) {
+            return res.status(200).json({
+                message:
+                    "If an account with that email exists, a password reset link will be sent."
+            });
+        }
+
+        const user = users[0];
+
+        const resetToken = crypto.randomBytes(32).toString("hex");
+
+        const resetTokenExpires = new Date(
+            Date.now() + 15 * 60 * 1000
+        );
+
+        await saveResetTokenModel(
+            email,
+            resetToken,
+            resetTokenExpires
+        );
+
+        console.log(
+            `Password reset token for ${user.email}: ${resetToken}`
+        );
+
+        res.status(200).json({
+            message:
+                "If an account with that email exists, a password reset link will be sent.",
+            resetToken
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+};
+
+
+const resetPassword = async (req, res) => {
+    try {
+
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({
+                message: "Token and password are required"
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                message:
+                    "Password must be at least 6 characters"
+            });
+        }
+
+        const users =
+            await getUserByResetTokenModel(token);
+
+        if (users.length === 0) {
+            return res.status(400).json({
+                message:
+                    "Invalid or expired password reset token"
+            });
+        }
+
+        const user = users[0];
+
+        const hashedPassword =
+            await bcrypt.hash(password, 10);
+
+        await updatePasswordModel(
+            user.id,
+            hashedPassword
+        );
+
+        res.status(200).json({
+            message:
+                "Password reset successful"
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            message: "Internal Server Error"
+        });
+    }
+};
+
 const getAllUsers = async (req, res) => {
     try {
         const users = await getAllUsersModel();
@@ -128,5 +245,7 @@ const getAllUsers = async (req, res) => {
 module.exports = {
     registerUser,
     loginUser,
+    forgotPassword,
+    resetPassword,
     getAllUsers
 }

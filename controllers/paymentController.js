@@ -24,10 +24,16 @@ const {
 
 const createPayment = async (req, res) => {
 
+    let connection;
+
     try {
 
-        const orderId = parseInt(req.params.orderId, 10);
-        const userId = req.user.id;
+        const orderId =
+            parseInt(req.params.orderId, 10);
+
+        const userId =
+            req.user.id;
+
 
         if (isNaN(orderId)) {
 
@@ -38,13 +44,46 @@ const createPayment = async (req, res) => {
         }
 
 
-        const orders = await getOrderForPaymentModel(
-            orderId,
-            userId
-        );
+        /*
+        * Get a database connection.
+        *
+        * We use this connection to lock the order
+        * while the payment is being initialized.
+        */
+
+        connection =
+            await getTransactionConnection();
+
+
+        /*
+        * Lock this order.
+        *
+        * Any second payment request for the same
+        * order must wait until this transaction
+        * finishes.
+        */
+
+        const [orders] =
+            await connection.query(
+                `SELECT
+                    id,
+                    user_id,
+                    price,
+                    quantity,
+                    status
+                FROM orders
+                WHERE id = ?
+                FOR UPDATE`,
+                [orderId]
+            );
 
 
         if (orders.length === 0) {
+
+            await connection.rollback();
+
+            connection.release();
+            connection = null;
 
             return res.status(404).json({
                 message: "Order not found"
@@ -53,13 +92,44 @@ const createPayment = async (req, res) => {
         }
 
 
-        const order = orders[0];
+        const order =
+            orders[0];
 
+
+        /*
+        * Make sure the order belongs to
+        * the logged-in user.
+        */
+
+        if (Number(order.user_id) !== Number(userId)) {
+
+            await connection.rollback();
+
+            connection.release();
+            connection = null;
+
+            return res.status(404).json({
+                message: "Order not found"
+            });
+
+        }
+
+
+        /*
+        * Payment can only be created while
+        * the order is still pending.
+        */
 
         if (order.status !== "pending") {
 
+            await connection.rollback();
+
+            connection.release();
+            connection = null;
+
             return res.status(400).json({
-                message: "Payment cannot be created for this order"
+                message:
+                    "Payment cannot be created for this order"
             });
 
         }
@@ -73,8 +143,26 @@ const createPayment = async (req, res) => {
         const amountInKobo =
             Math.round(expectedAmount * 100);
 
-        const existingPayments =
-           await getPaymentByOrderIdModel(orderId);
+
+        /*
+        * Check existing payments while the order
+        * is locked.
+        */
+
+        const [existingPayments] =
+            await connection.query(
+                `SELECT
+                    id,
+                    order_id,
+                    amount,
+                    reference,
+                    status,
+                    created_at
+                FROM payments
+                WHERE order_id = ?
+                ORDER BY id DESC`,
+                [orderId]
+            );
 
 
         if (existingPayments.length > 0) {
@@ -90,8 +178,14 @@ const createPayment = async (req, res) => {
 
             if (existingPayment.status === "successful") {
 
+                await connection.rollback();
+
+                connection.release();
+                connection = null;
+
                 return res.status(400).json({
-                    message: "This order has already been paid"
+                    message:
+                        "This order has already been paid"
                 });
 
             }
@@ -99,11 +193,7 @@ const createPayment = async (req, res) => {
 
             /*
             * If there is already a pending payment,
-            * do not create another payment record.
-            *
-            * This prevents duplicate payment records
-            * caused by page refreshes, double clicks,
-            * repeated requests, etc.
+            * verify it with Paystack and reuse it.
             */
 
             if (existingPayment.status === "pending") {
@@ -124,6 +214,11 @@ const createPayment = async (req, res) => {
                     paystackResponse.data.status === "success"
                 ) {
 
+                    await connection.rollback();
+
+                    connection.release();
+                    connection = null;
+
                     return res.status(400).json({
                         message:
                             "Payment was already completed. Please refresh your orders."
@@ -133,10 +228,14 @@ const createPayment = async (req, res) => {
 
 
                 /*
-                * The payment is still pending.
-                * Reuse the existing payment instead of
-                * creating another database record.
+                * The existing payment is still pending.
+                * Reuse it.
                 */
+
+                await connection.rollback();
+
+                connection.release();
+                connection = null;
 
                 return res.status(200).json({
 
@@ -153,22 +252,32 @@ const createPayment = async (req, res) => {
 
             }
 
-        }   
+        }
+
 
         /*
-         * Create a unique reference
-         */
+        * Create a new unique Paystack reference.
+        */
 
         const reference =
             `PC_HUB_${orderId}_${Date.now()}`;
 
 
         /*
-         * Initialize transaction with Paystack
-         */
+        * Paystack callback URL.
+        */
 
         const callbackUrl =
-           `https://pc-hub-frontend.onrender.com/payment-callback.html`;
+            `https://pc-hub-frontend.onrender.com/payment-callback.html`;
+
+
+        /*
+        * Initialize Paystack while the order is locked.
+        *
+        * This prevents another request from
+        * initializing another Paystack transaction
+        * for the same order.
+        */
 
         const paystackResponse =
             await initializeTransaction(
@@ -178,7 +287,13 @@ const createPayment = async (req, res) => {
                 callbackUrl
             );
 
+
         if (!paystackResponse.status) {
+
+            await connection.rollback();
+
+            connection.release();
+            connection = null;
 
             return res.status(400).json({
                 message:
@@ -190,22 +305,42 @@ const createPayment = async (req, res) => {
 
 
         /*
-         * Save payment in database
-         */
+        * Save the payment using the SAME database
+        * connection and transaction.
+        */
 
-        const result =
-            await createPaymentModel(
-                orderId,
-                expectedAmount,
-                reference
+        const [result] =
+            await connection.query(
+                `INSERT INTO payments
+                (order_id, amount, reference)
+                VALUES (?, ?, ?)`,
+                [
+                    orderId,
+                    expectedAmount,
+                    reference
+                ]
             );
+
+
+        /*
+        * Commit the payment record and release
+        * the order lock.
+        */
+
+        await connection.commit();
+
+
+        connection.release();
+        connection = null;
 
 
         return res.status(201).json({
 
-            message: "Payment initialized successfully",
+            message:
+                "Payment initialized successfully",
 
-            paymentId: result.insertId,
+            paymentId:
+                result.insertId,
 
             reference,
 
@@ -216,15 +351,41 @@ const createPayment = async (req, res) => {
 
     } catch (error) {
 
-        console.error(error);
+        if (connection) {
+
+            try {
+
+                await connection.rollback();
+
+            } catch (rollbackError) {
+
+                console.error(
+                    "Rollback error:",
+                    rollbackError
+                );
+
+            }
+
+            connection.release();
+
+        }
+
+
+        console.error(
+            "Create payment error:",
+            error
+        );
+
 
         return res.status(500).json({
-            message: "Unable to initialize payment"
+            message:
+                "Unable to initialize payment"
         });
 
     }
 
 };
+
 
 const payPayment = async (req, res) => {
 
