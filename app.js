@@ -7,6 +7,7 @@ const pool = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
 const productRoutes = require("./routes/productRoutes");
 const userRoutes = require("./routes/userRoutes");
+const contactRoutes = require("./routes/contactRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
@@ -30,6 +31,7 @@ app.use(express.json({
 app.use(productRoutes);
 app.use(categoryRoutes);
 app.use(userRoutes);
+app.use("/", contactRoutes);
 app.use(orderRoutes);
 app.use(cartRoutes);
 app.use("/checkout", checkoutRoutes);
