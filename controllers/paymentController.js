@@ -66,17 +66,18 @@ const createPayment = async (req, res) => {
         const [orders] =
             await connection.query(
                 `SELECT
-                    id,
-                    user_id,
-                    price,
-                    quantity,
-                    status
+                    orders.id,
+                    orders.user_id,
+                    products.price,
+                    orders.quantity,
+                    orders.status
                 FROM orders
-                WHERE id = ?
+                JOIN products
+                    ON orders.product_id = products.id
+                WHERE orders.id = ?
                 FOR UPDATE`,
                 [orderId]
             );
-
 
         if (orders.length === 0) {
 

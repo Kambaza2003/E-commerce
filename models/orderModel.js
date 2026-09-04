@@ -52,6 +52,19 @@ const updateOrderStatusModel = async (orderId, status) => {
     return result;
 };
 
+const cancelOrderModel = async (orderId, userId) => {
+    const [result] = await pool.query(
+        `UPDATE orders
+         SET status = 'cancelled'
+         WHERE id = ? 
+         AND user_id = ? 
+         AND status = 'pending';`, 
+        [orderId, userId]
+    ); 
+    
+    return result; 
+};
+
 const getAllOrdersModel = async () => {
     const [rows] = await pool.query(
         `SELECT
@@ -87,6 +100,7 @@ module.exports ={
     getOrdersByUserIdModel,
     getOrderByIdModel, 
     updateOrderStatusModel,
+    cancelOrderModel,
     getAllOrdersModel,
-    updateOrderStatusWithConnectionModel
+    updateOrderStatusWithConnectionModel    
 }
