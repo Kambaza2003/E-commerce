@@ -20,20 +20,24 @@ const getOrdersByUserIdModel = async (userId) => {
     return rows;
 };
 
-const getOrderByIdModel = async (orderId, userId) =>{
+const getOrderByIdModel = async (orderId, userId) => {
     const [rows] = await pool.query(
         `SELECT
             orders.id,
             products.name,
             products.price,
+            product_images.image,
             orders.quantity,
             orders.status,
             orders.created_at
         FROM orders
         JOIN products
             ON orders.product_id = products.id
+        LEFT JOIN product_images
+            ON products.id = product_images.product_id
         WHERE orders.id = ?
-        AND orders.user_id = ?;`,
+        AND orders.user_id = ?
+        LIMIT 1;`,
         [orderId, userId]
     );
 
